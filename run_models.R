@@ -53,9 +53,13 @@ lc <- readRDS('results/lencomp_boots.RDS')
 ##                      printstats=FALSE, verbose=FALSE)
 ##saveRDS(replist, 'results/replist.RDS')
 ## dat0 <- SS_readdat('runs/BSAI_FHS/boot_0/data.ss', verbose=FALSE)
-## saveRDS(dat0, 'results/dat0.RDS')
+## saveRDS(dat0, 'results/dat0.RDS'
+## dat_original <- SS_readdat('models/BSAI_FHS/data.ss', verbose=FALSE)
+## saveRDS(dat_original, 'results/dat_original.RDS')
+
 replist <- readRDS('results/replist.RDS')
 dat0 <- readRDS('results/dat0.RDS')
+dat_original <- readRDS('results/dat_original.RDS')
 
 lc.pearson <- replist$lendbase %>%
   select(Yr, FltSvy=Fleet, Gender=Sex,
