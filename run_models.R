@@ -25,8 +25,8 @@ cpus <- parallel::detectCores()-2
 sfStop()
 sfInit( parallel=TRUE, cpus=cpus)
 sfExportAll()
-## Run the models
-run_model(499:500, model.name='BSAI_FHS', clean.files=FALSE)
+## ## Run the models
+## run_model(499:500, model.name='BSAI_FHS', clean.files=FALSE)
 
 
 ### Do the PIT calculations
@@ -46,7 +46,15 @@ run_model(499:500, model.name='BSAI_FHS', clean.files=FALSE)
 ## ## simulated.
 ## ## saveRDS(lc, file='results/lencomp_boots.RDS')
 lc <- readRDS('results/lencomp_boots.RDS')
+## turns out boot=0 has been normalized and the others havent so
+## recover that
+rowSums(lc[,,1])
+rowSums(lc[,,2])
+lc[,,1] <- lc[,,1]*rowSums(lc[,,2])
+(Nsamp <- rowSums(lc[,,2]))
 
+plot(ecdf(lc[5,5,]))
+plot(ecdf(lc[43,15,]))
 
 ## Need to get Pearson residuals, it's long here so pivot wider
 ## replist <- SS_output('runs/BSAI_FHS/boot_0', covar=FALSE,
@@ -55,7 +63,13 @@ lc <- readRDS('results/lencomp_boots.RDS')
 ## dat0 <- SS_readdat('runs/BSAI_FHS/boot_0/data.ss', verbose=FALSE)
 ## saveRDS(dat0, 'results/dat0.RDS')
 replist <- readRDS('results/replist.RDS')
+## SS reorders so make this match
 dat0 <- readRDS('results/dat0.RDS')
+lc0 <- dat0$lencomp %>% arrange(Yr, FltSvy)
+cbind(Nsamp,lc0$Nsamp)
+
+lc0[1,-(1:5)] %>% as.numeric
+lc[1,,1]
 
 lc.pearson <- replist$lendbase %>%
   select(Yr, FltSvy=Fleet, Gender=Sex,
@@ -69,19 +83,20 @@ lc.pearson <- replist$lendbase %>%
 ## Now calculate PIT resids
 lc.pit <- array(NA, dim=c(dim(lc)[1:2]))
 set.seed(1214124)
-#jit <- function(x) x+runif(length(x),-.5,.5)
-#for(y in 1:nrow(lc.pit)){ # loop year
-#  for(b in 1:ncol(lc.pit)){ # loop length bins
-#    ## P(obs data>simulated data)
-#    lc.pit[y,b] <- qnorm(mean(jit(lc[y,b,1])>jit(lc[y,b,-1])))
-#  }
-#}
 for(y in 1:nrow(lc.pit)){ # loop year
   for(b in 1:ncol(lc.pit)){ # loop length bins
     ## P(obs data>simulated data)
-    lc.pit[y,b] <- runif( n=1, min=mean(lc[y,b,1]>lc[y,b,-1]), max=mean(lc[y,b,1]>=lc[y,b,-1]) )
+    lc.pit[y,b] <- runif(n=1,
+                          min=mean(lc[y,b,1]>lc[y,b,-1]),
+                          max=mean(lc[y,b,1]>=lc[y,b,-1]) )
   }
 }
+
+head(lc.pit)
+lc.pit[1,3]
+
+plot(as.vector(lc.pit), as.vector(lc.pit), xlab='cole', ylab='jim')
+
 ## Get back into data.frame and match to Pearson. Note that sex=1
 ## only and I'm not sure if I did this right
 lc.pit <- dat0$lencomp %>%
@@ -104,10 +119,11 @@ lc.all <- bind_rows(cbind(type='PIT', lc.pit),
                     cbind(type='Pearson', lc.pearson)) %>%
   pivot_longer(-c(type, Yr, FltSvy, Nsamp), names_to='bin',
                values_to='residual') %>%
-  mutate(FltSvy=paste0('Fleet',FltSvy))
+  mutate(FltSvy=paste0('Fleet',FltSvy),
+         type=factor(type, levels=c('PIT', "Pearson")))
 
 g <- ggplot(lc.all, aes(residual, fill=type)) +
-  geom_histogram(position='identity', alpha=.5) + facet_wrap('FltSvy')
+  geom_histogram(position='identity', bins=50, alpha=.5) + facet_wrap('FltSvy')
 ggsave("plots/resids_by_type.png", g, width=7, height=3)
 
 ## Scatter plots, cast wide first
