@@ -73,11 +73,17 @@ lc.pearson <- replist$lendbase %>%
 ## Now calculate PIT resids
 lc.pit <- array(NA, dim=c(dim(lc)[1:2]))
 set.seed(1214124)
-jit <- function(x) x+runif(length(x),-.5,.5)
+#jit <- function(x) x+runif(length(x),-.5,.5)
+#for(y in 1:nrow(lc.pit)){ # loop year
+#  for(b in 1:ncol(lc.pit)){ # loop length bins
+#    ## P(obs data>simulated data)
+#    lc.pit[y,b] <- qnorm(mean(jit(lc[y,b,1])>jit(lc[y,b,-1])))
+#  }
+#}
 for(y in 1:nrow(lc.pit)){ # loop year
   for(b in 1:ncol(lc.pit)){ # loop length bins
     ## P(obs data>simulated data)
-    lc.pit[y,b] <- qnorm(mean(jit(lc[y,b,1])>jit(lc[y,b,-1])))
+    lc.pit[y,b] <- runif( n=1, min=mean(lc[y,b,1]>lc[y,b,-1]), max=mean(lc[y,b,1]>=lc[y,b,-1]) )
   }
 }
 ## Get back into data.frame and match to Pearson. Note that sex=1
@@ -167,6 +173,7 @@ g <- ggplot(lcboot, aes(Exp, Pearson, color=Nsamp_adj)) +
   facet_wrap("Fleet", scales='free_x',  ncol=1)
 ggsave("plots/null_vs_exp.png", g, width=7, height=5)
 g <- ggplot(lcboot, aes(Exp, Obs, color=abs(Pearson)>5))+
+  geom_abline(slope=1, intercept=0)+
   geom_point(alpha=.25) + scale_x_log10() + scale_y_log10() +
   facet_wrap("Fleet", scales='free_x',  ncol=1)
 ggsave("plots/obs_vs_exp.png", g, width=7, height=5)
