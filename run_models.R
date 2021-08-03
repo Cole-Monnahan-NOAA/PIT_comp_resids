@@ -193,23 +193,28 @@ ggsave("plots/resids_by_type.png", g, width=7, height=3)
 ### Part two is to look at the behavior of Pearson residuals with
 ### the correctly specified model
 
-## ## Loop through and read in the comp residuals for all boottrap
-## ## iterations.
-## lc.list <- list()
-## for(boot in 0:498){ # 0 is the original file
-##   ff <- paste0('runs/BSAI_FHS/boot_',boot)
-##   out <- SS_output(ff, covar=FALSE, printstats=FALSE, verbose=FALSE)
-##   lc.list[[boot+1]] <- select(out$lendbase, Yr, Fleet, Sex, Bin,
-##                               Pearson, Obs, Exp, Nsamp_adj) %>% cbind(boot=boot)
-## }
-## lcboot <- bind_rows(lc.list)
-## saveRDS(lcboot, 'results/lcboot.RDS')
+## Loop through and read in the comp residuals for all boottrap
+## iterations.
+lc.list <- list()
+for(boot in 1:498){ # 0 is the original file
+  ff <- paste0('runs/BSAI_FHS/boot_',boot)
+  out <- SS_output(ff, covar=FALSE, printstats=FALSE, verbose=FALSE)
+  lc.list[[boot]] <- select(out$lendbase, Yr, Fleet, Sex, Bin,
+                              Pearson, Obs, Exp, Nsamp_adj) %>% cbind(boot=boot)
+}
+replist <- readRDS("results/replist.RDS")$lendbase %>%
+  select(Yr, Fleet, Sex, Bin, Pearson, Obs, Exp, Nsamp_adj) %>%
+  cbind(boot=0)
+
+lcboot <- bind_rows(replist, lc.list)
+saveRDS(lcboot, 'results/lcboot.RDS')
 
 ## Quick output prep for plotting and analysis
 lcboot <- readRDS('results/lcboot.RDS')
 lcboot <- mutate(lcboot, Fleet=paste0('fleet',Fleet)) %>%
-  ## Drop half the years for easier plotting
-  filter(Yr %% 2 == 0)
+  ## Drop half the years for easier plotting and ghost comps
+  filter(Yr %% 2 == 0 & FltSvy>0)
+
 lcboot0 <- filter(lcboot, boot==0)
 lcboot <- lcboot %>% filter(boot!=0)
 
@@ -248,15 +253,15 @@ g <- lcboot %>%
 ggsave("plots/null_distribution_bins.png", g, width=7, height=7)
 
 
-## Zoom in a bit? These don't really help I don't think
-lcboot2 <- group_by(lcboot, Yr, Fleet, Sex, Bin) %>%
-  summarize(mean=mean(Pearson), sd=sd(Pearson), max=max(Pearson),
-            range=range(Pearson),
-            pvalue=ks.test(Pearson, 'pnorm', mean=0, sd=1)$p.value, .groups='drop')
-## ggplot(lcboot2, aes(pvalue)) + geom_histogram()
-##   scale_color_gradient(lim=c(0,1))
-ggplot(lcboot2, aes(Yr, Bin, color=range)) + geom_point() +
-  scale_color_gradient(low='red',  high='blue') +
-  facet_wrap('Fleet')
+## ## Zoom in a bit? These don't really help I don't think
+## lcboot2 <- group_by(lcboot, Yr, Fleet, Sex, Bin) %>%
+##   summarize(mean=mean(Pearson), sd=sd(Pearson), max=max(Pearson),
+##             range=range(Pearson),
+##             pvalue=ks.test(Pearson, 'pnorm', mean=0, sd=1)$p.value, .groups='drop')
+## ## ggplot(lcboot2, aes(pvalue)) + geom_histogram()
+## ##   scale_color_gradient(lim=c(0,1))
+## ggplot(lcboot2, aes(Yr, Bin, color=range)) + geom_point() +
+##   scale_color_gradient(low='red',  high='blue') +
+##   facet_wrap('Fleet')
 
 
