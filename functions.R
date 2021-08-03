@@ -36,32 +36,6 @@ run_SS_boot_iteration <- function(boot, model.name,
   newfiles <- list.files(wd, full.names=TRUE) # mark for deletion
   setwd(wd)
   system('ss -nohess -iprint 1000 -nox')
-  ## ## Run retro for this bootstrap one
-  ## SS_doRetro(masterdir=getwd(), oldsubdir=wd,
-  ##            newsubdir=paste0(wd, '/retros'),
-  ##            years=peels, extras='-nohess -nox -iprint 1000')
-  ## dirvec <- file.path(paste0(wd, '/retros'), paste("retro",peels,sep=""))
-  ## if(length(dirvec)!=Npeels+1)
-  ##   stop("Some retro runs missing in iteration ", boot)
-  ## retroModels <- SSgetoutput(dirvec=dirvec, getcovar=FALSE)
-  ## retroSummary <- SSsummarize(retroModels)
-  ## if(model.name %in% c('BSAI_GT', 'BSAI_GT2')) {
-  ##   ## What is going on here?? hack to fix error
-  ##   retroSummary$startyrs <- rep(1961, length(peels))
-  ## }
-  ## saveRDS(retroSummary, file=paste0(file.path(wd,'retroSummary.RDS')))
-  ## saveRDS(retroModels, file=paste0(file.path(wd,'retroModels.RDS')))
-  ## endyrvec <- retroSummary$endyrs + peels
-  ## SSplotComparisons(retroSummary, subplots=1:3, endyrvec=endyrvec, png=TRUE, plot=FALSE,
-  ##                   plotdir=wd, legendlabels=paste("Data",peels,"years"))
-  ## ## Calculate Mohn's rho. Not sure why I need to increase
-  ## ## startyr here but errors out for some models if I don't. It
-  ## ## looks like this is only relevant for WHOI rho calcs so seems
-  ## ## fine to ignore.
-  ## rho <- SSmohnsrho(retroSummary, endyrvec=endyrvec, startyr=retroSummary$startyr[1]+1)
-  ## rhos <- data.frame(model=model.name, miller=miller, boot=boot, rho)
-  ## tmp <- ifelse(miller, 'results_miller_rho.csv', 'results_rho.csv')
-  ## write.csv(x=rhos, file=file.path(wd, tmp), row.names=FALSE)
   if(clean.files){
     unlink(file.path(wd, 'retros'), recursive=TRUE)
     file.remove(file.path(wd, 'retroSummary.RDS'))
